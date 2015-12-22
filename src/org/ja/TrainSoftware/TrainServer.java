@@ -4,9 +4,10 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.Scanner;
 import pcduino.test.GPIO_Pin;
+
+//button code from http://css3buttongenerator.com/
 
 /**
  * TrainServer is the class that runs the GUI system of the interface.
@@ -15,43 +16,13 @@ import pcduino.test.GPIO_Pin;
  */
 public class TrainServer {
 
-    private static int port;
+    private static int port;//port number of interface
     private static final boolean IS_VERTICAL = true;
-    private static final String BUTTON_CODE
-            = "<a href=\"~\" class=\"btn\">`</a>\n";
-    //button code from http://css3buttongenerator.com/
-    private static final String BASE_MESSAGE = "<!DOCTYPE html>\n"
-            + "<html>\n"
-            + "    <head>\n"
-            + "        <meta charset=\"UTF-8\">\n"
-            + "        <title></title>\n"
-            + "        <style>.btn {\n"
-            + "  -webkit-border-radius: 4;\n"
-            + "  -moz-border-radius: 4;\n"
-            + "  border-radius: 4px;\n"
-            + "  color: #ffffff;\n"
-            + "  font-size: 20px;\n"
-            + "  background: #6cc0f7;\n"
-            + "  padding: 10px 20px 10px 20px;\n"
-            + "  border: solid #4893c2 2px;\n"
-            + "  text-decoration: none;\n"
-            + "}\n"
-            + "\n"
-            + ".btn:hover {\n"
-            + "  background: #3cb0fd;\n"
-            + "  text-decoration: none;\n"
-            + "}\n"
-            + "</style>"
-            + "    </head>\n"
-            + "    <body>\n"
-            + "<div style=\"padding: 20px 10px 20px 10px;\">~</div>"
-            + "    </body>\n"
-            + "</html>\n";
-
+    //these are our pins on the pcDuino from the other class.
     private static GPIO_Pin EA, EB, FWA, RVA, SWA, SWB;
-    private static double pwmA;
-    private static final double PERCISION = 10;
-    private static boolean sw = false;
+    private static double pwmA;//pwm variable from 0.0 to 1.0
+    private static final double PERCISION = 10;//percision is the percision of the PWM signal out of 1
+    private static boolean sw = false;//switch toggle state
 
     /**
      * Main
@@ -68,7 +39,8 @@ public class TrainServer {
         RVA = new GPIO_Pin(11);
         SWA = new GPIO_Pin(12);
         SWB = new GPIO_Pin(13);
-        port = 80;
+        port = 80;//set default port
+        //check if there's a port in the args
         if (args.length == 1) {
             try {
                 port = Integer.parseInt(args[0]);
@@ -76,6 +48,7 @@ public class TrainServer {
             }
         }
         initTrain();
+        //runs the web server thread
         Thread run = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -88,11 +61,14 @@ public class TrainServer {
                 }
             }
         });
+        //run the PWM thread - custom PWM code below.
         Thread pwma = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
                     while (true) {
+                        //calculate the time from the duty cycle percentage.
+                        //pwmA is between 0.0 and 1.0
                         double duty = Math.abs(PERCISION * pwmA);
                         double noDuty = Math.abs(PERCISION * (1.0 - pwmA));
                         if (duty != 0) {
@@ -111,6 +87,8 @@ public class TrainServer {
         pwma.start();
         run.start();
         Scanner reader = new Scanner(System.in);
+        //if someone puts text on the line and presses enter, the program stops.
+        //this is so that someone can stop it without CTL-C while running in a CLI
         while (true) {
             if (reader.hasNext()) {
                 System.exit(0);
@@ -128,6 +106,7 @@ public class TrainServer {
      */
     private static void runHTTP(int port) throws IOException {
         ServerSocket socket = new ServerSocket(port);
+        //made a server, let's get the clients.
         while (true) {
             Socket accept = socket.accept();
             Scanner in = new Scanner(accept.getInputStream());
@@ -138,7 +117,7 @@ public class TrainServer {
             }
             //System.out.println("[" + command + "]");//raw headers from browser
             if (command.isEmpty()) {
-                System.out.println("Closing Connection - no data.");
+                System.out.println("Closing Connection - erronous request.");
                 accept.close();
             } else {
                 String mode = command.substring(0, command.indexOf(" "));
@@ -149,16 +128,21 @@ public class TrainServer {
                     System.out.println(mode + " " + path);
                 }
 
+                //do we have a speed?
                 try {
                     double speed = Double.parseDouble(path);
                     controlTrain(speed);
                     System.out.println("Speed: " + speed);
                 } catch (Exception e) {
                 }
+                
+                //is there some reason that someone panics and puts stop in the CMD?
                 if (path.equalsIgnoreCase("stop")) {
                     controlTrain(0);
                     System.out.println("Stopped.");
                 }
+                
+                //switches the track when toggled. This blocks for 1 second
                 if (path.equalsIgnoreCase("sw")) {
                     switchTracks();
                     System.out.print("Switched Tracks: ");
@@ -207,6 +191,8 @@ public class TrainServer {
                         + "<br/><br/><a href=\"-8\" class=\"btn\">-8</a>\n"
                         + "<br/><br/><a href=\"-10\" class=\"btn\">-10</a>\n"
                         + "</div></td><td>"
+                        //replace http://ja13.tk/ with your own hostname if you wish
+                        //todo - make the builtin web server serve out the images.
                         + "<a href=\"sw\"><img src=\"http://ja13.tk/";
                 if (sw) {
                     output += "siding.png";
@@ -249,6 +235,7 @@ from the path that we specified in the initial redirect link that we click.
         }
     }
 
+    //this sets all the output pins and disables movement.
     private static void initTrain() {
         EA.setModeOUTPUT();
         EB.setModeOUTPUT();
@@ -260,6 +247,8 @@ from the path that we specified in the initial redirect link that we click.
         EB.setLOW();
     }
 
+    //this will get the speed of the train, and set the PWM signal speed.
+    //It also will set the direction of the pins for the motor controller.
     private static void controlTrain(double speed) {
         if (speed < 0) {
             FWA.setHIGH();
@@ -276,6 +265,7 @@ from the path that we specified in the initial redirect link that we click.
         }
     }
 
+    //this will cause the switch to get a 1000ms pulse to switch directions.
     private static void switchTracks() {
         if (sw) {
             SWA.setLOW();
