@@ -23,6 +23,7 @@ public class TrainServer {
     private static double pwmA;//pwm variable from 0.0 to 1.0
     private static final double PERCISION = 10;//percision is the percision of the PWM signal out of 1
     private static boolean sw = false;//switch toggle state
+    private static double speed;//speed of the train last gotten from http
 
     /**
      * Main
@@ -130,7 +131,7 @@ public class TrainServer {
 
                 //do we have a speed?
                 try {
-                    double speed = Double.parseDouble(path);
+                    speed = Double.parseDouble(path);
                     controlTrain(speed);
                     System.out.println("Speed: " + speed);
                 } catch (Exception e) {
@@ -165,16 +166,28 @@ public class TrainServer {
                         + "  border-radius: 4px;\n"
                         + "  color: #ffffff;\n"
                         + "  font-size: 20px;\n"
-                        + "  background: #6cc0f7;\n"
-                        + "  padding: 10px 20px 10px 20px;\n"
-                        + "  border: solid #4893c2 2px;\n"
+                        + "  background: #111111;\n"
+                        + "  padding: 5px 5px 5px 5px;\n"
+                        + "  border: solid #444444 2px;\n"
                         + "  text-decoration: none;\n"
+                        + "}\n"
+                        + ".ind {\n"
+                        + "  -webkit-border-radius: 4;\n"
+                        + "  -moz-border-radius: 4;\n"
+                        + "  border-radius: 4px;\n"
+                        + "  color: #ffffff;\n"
+                        + "  font-size: 20px;\n"
+                        + "  background: #111111;\n"
+                        + "  padding: 5px 5px 5px 5px;\n"
+                        + "  border: solid #444444 2px;\n"
+                        + "  text-decoration: none;\n"
+                        + "  text-align: center;\n"
                         + "}\n"
                         + "\n"
                         + ".btn:hover {\n"
                         + "  background: #3cb0fd;\n"
                         + "  text-decoration: none;\n"
-                        + "}\n"
+                        + "}\nhtml{background:black;}\n"
                         + "</style>"
                         + "</head>\n"
                         + "<body>\n<table><tr><td>"
@@ -199,7 +212,7 @@ public class TrainServer {
                 } else {
                     output += "mainline.png";
                 }
-                output += "\"></img></a></td></table>\n"
+                output += "\"></img></a><br/><div class=\"ind\">" + (int)speed + "</div></td></tr></table>\n"
                         + "    </body>\n"
                         + "</html>\n";
 
