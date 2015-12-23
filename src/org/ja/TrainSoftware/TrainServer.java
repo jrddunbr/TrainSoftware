@@ -285,7 +285,7 @@ from the path that we specified in the initial redirect link that we click.
             SWB.setHIGH();
             EB.setHIGH();
             try {
-                Thread.sleep(1000);
+                Thread.sleep(500);
             } catch (Exception e) {
             }
             EB.setLOW();
@@ -294,7 +294,7 @@ from the path that we specified in the initial redirect link that we click.
             SWB.setLOW();
             EB.setHIGH();
             try {
-                Thread.sleep(1000);
+                Thread.sleep(500);
             } catch (Exception e) {
             }
             EB.setLOW();
